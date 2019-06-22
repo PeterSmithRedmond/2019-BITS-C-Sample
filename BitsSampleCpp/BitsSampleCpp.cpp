@@ -1,166 +1,151 @@
 
 #include "pch.h"
-// // // iostream should be in pch.h
-// // // #include <iostream>  // // // this is defined multiple times?
+#include "NotifyInterface.h"
 
-// // // Really -- all these globals?
-IBackgroundCopyManager* g_pbcm = NULL;
-GUID JobId;
-IBackgroundCopyJob* pJob = NULL;
-IBackgroundCopyJob5* pJob5 = NULL; // // // why not always set up pjob5? job4 is default in windows 7 job5 is windows 8. Windows 7 is EOL in January 14, 2020!
-HRESULT hr; // // // seriously never have hr as a global!
+// doc update: mention that you need the bits.lib in order to get the CLSID values.
+#pragma comment (lib, "bits.lib")
+#pragma warning (error: 4706) // Catch error 4706 assignment in conditional expression
 
 
-bool ConnectToBITS()
+// From IBackgroundCopyCallback Interface
+// https://docs.microsoft.com/en-us/windows/desktop/api/Bits/nn-bits-ibackgroundcopycallback
+
+
+
+void DownloadFile()
 {
-	if (g_pbcm == NULL)
-	{
-		hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-		if (SUCCEEDED(hr))
-		{
-			hr = CoCreateInstance(__uuidof(BackgroundCopyManager), NULL,
-				CLSCTX_LOCAL_SERVER,
-				__uuidof(IBackgroundCopyManager),
-				(void**)&g_pbcm);
-			if (SUCCEEDED(hr))
-			{
-				//Use g_pbcm to create, enumerate, or retrieve jobs from the queue.
-			}
-		}
-	}
-	return g_pbcm != NULL;
-}
+	_COM_SMARTPTR_TYPEDEF(IBackgroundCopyManager, __uuidof(IBackgroundCopyManager));
+	_COM_SMARTPTR_TYPEDEF(IBackgroundCopyJob, __uuidof(IBackgroundCopyJob));
+	_com_ptr_t<_com_IIID<IBackgroundCopyManager, &__uuidof(IBackgroundCopyManager)>> bcm = NULL;
+	_com_ptr_t<_com_IIID<IBackgroundCopyManager, &__uuidof(IBackgroundCopyManager)>> bcm10_2 = NULL;
+	_com_ptr_t<_com_IIID<IBackgroundCopyJob, &__uuidof(IBackgroundCopyJob)>> job = NULL;
+	_com_ptr_t<_com_IIID<IBackgroundCopyJob5, &__uuidof(IBackgroundCopyJob5)>> job5 = NULL;
 
-// https://docs.microsoft.com/en-us/windows/desktop/Bits/creating-a-job
-bool CreateJob()
-{
-	bool Retval = false;
-	//To create an upload job, replace BG_JOB_TYPE_DOWNLOAD with 
-	//BG_JOB_TYPE_UPLOAD or BG_JOB_TYPE_UPLOAD_REPLY.
-	hr = g_pbcm->CreateJob(L"MyJobName", BG_JOB_TYPE_DOWNLOAD, &JobId, &pJob);
-	if (SUCCEEDED(hr))
-	{
-		//Save the JobId for later reference. 
-		//Modify the job's property values.
-		//Add files to the job.
-		//Activate (resume) the job in the transfer queue.
-		hr = pJob->QueryInterface(__uuidof(IBackgroundCopyJob5), (void**)&pJob5);
-		pJob->Release();
-		if (FAILED(hr)) // // //TODO: inconsitant use of SUCCESS and FAILURE
-		{
-			wprintf(L"pJob->QueryInterface failed with 0x%x.\n", hr);
-			// // //TODO: goto cleanup;
-		}
+	const ULONG NFilesInSet = 1;
+	BG_FILE_INFO* paFiles = NULL;
 
-		Retval = SUCCEEDED(hr);
-	}
-	return Retval;
-}
 
-// // // https://docs.microsoft.com/en-us/windows/desktop/Bits/adding-files-to-a-job
-bool AddFileToJob()
-{
-	bool Retval = false;
-	//Replace parameters with variables that contain valid paths.
-	// // //TODO: pick values that will "always" work!!
-	hr = pJob->AddFile(L"https://ServerName/Path/File.Ext", L"d:\\Path\\File.Ext");
-	hr = pJob->AddFile(L"http://www.msftconnecttest.com/ncsi.txt", L"c:\\TEMP\\File.Ext");
-	if (SUCCEEDED(hr))
-	{
-		//Do something.
-		Retval = true;
-	}
-	return Retval;
-}
-
-// // // https://docs.microsoft.com/en-us/windows/desktop/Bits/polling-for-the-status-of-the-job
-bool PollJob()
-{
-	BG_JOB_STATE State;
-	HANDLE hTimer = NULL;
-	LARGE_INTEGER liDueTime;
-
-	// // // TODO: these had been all commented out; IMHO we should leave them be
-	//IBackgroundCopyError* pError = NULL;
-	//BG_JOB_PROGRESS Progress;
-	// // // TODO: must be const WCHAR *! Otherwise the compiler complains
 	const WCHAR *JobStates[] = { L"Queued", L"Connecting", L"Transferring",
-	                       L"Suspended", L"Error", L"Transient Error",
-	                       L"Transferred", L"Acknowledged", L"Canceled"
-	                     };
+						   L"Suspended", L"Error", L"Transient Error",
+						   L"Transferred", L"Acknowledged", L"Canceled"
+	};
 
-	liDueTime.QuadPart = -10000000;  //Poll every 1 second
-	liDueTime.QuadPart = -1000000;  //Poll every 1 second // // // TODO: poll 10x per second
-	hTimer = CreateWaitableTimer(NULL, FALSE, L"MyTimer");
-	SetWaitableTimer(hTimer, &liDueTime, 1000, NULL, NULL, 0);
+	// Part 1: Connecting to the BITS Service
+	// https://docs.microsoft.com/en-us/windows/desktop/bits/connecting-to-the-bits-service
+	// Doc update: In the "Before your application exits" section, update the documentation to mention
+	// that the _com_ptr_t will automatically release.
 
+	std::wcout << L"Initialize COM" << std::endl;
+	// // // TODO: what are the allowed values for the coinitialize?
+	// // // Started as COINIT_APARTMENTTHREADED but COINIT_MULTITHREADED is the 'default'
+	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	if (FAILED(hr)) goto cleanup;
+
+	std::wcout << L"Create the BackgroundCopyManager" << std::endl;
+	hr = bcm.CreateInstance(__uuidof(BackgroundCopyManager));
+	if (FAILED(hr)) goto cleanup;
+
+	// Part 1: Connecting to the BITS Service
+	// The following code shows how to use one of the symbolic class identifiers.
+	// This will only work when the code is run on a system that includes BITS 10.2
+	std::wcout << L"Create the BackgroundCopyManager for BITS 10.2" << std::endl;
+	hr = bcm10_2.CreateInstance(CLSID_BackgroundCopyManager10_2);
+	if (FAILED(hr)) goto cleanup;
+
+	// Part 2: Creating a job
+	// https://docs.microsoft.com/en-us/windows/desktop/bits/creating-a-job
+	std::wcout << L"Create the job" << std::endl;
+	GUID JobId;
+	hr = bcm->CreateJob(L"My simple job", BG_JOB_TYPE_DOWNLOAD, &JobId, &job);
+	if (FAILED(hr)) goto cleanup;
+
+	// To get the latest IBackgroundCopyJob, call the IBackgroundCopyJob::QueryInterface
+	// IBackgroundCopyJob5 cindlues the GetProperty and SetProperty interfaces.
+	std::wcout << L"Create the IBackgroundCopyJob5 version of the job" << std::endl;
+	hr = job->QueryInterface<IBackgroundCopyJob5>(&job5);
+	if (FAILED(hr)) goto cleanup;
+
+	// Part 3: Adding Files to a Job
+	// https://docs.microsoft.com/en-us/windows/desktop/bits/adding-files-to-a-job	std::wcout << L"Add a file" << std::endl;
+	// The c:\temp directory must exist
+	hr = job5->AddFile(L"http://www.msftconnecttest.com/ncsi.txt", L"c:\\TEMP\\bitssample-nsci.txt");
+	if (FAILED(hr)) goto cleanup;
+
+	// The following example shows how to add multiple files to the job
+	paFiles = (BG_FILE_INFO*)malloc(sizeof(BG_FILE_INFO) * NFilesInSet);
+	if (paFiles == NULL) goto cleanup;
+	//Doc change: I'm using wcsdup here. I'm also using proper array indexing
+	paFiles[0].RemoteName = _wcsdup(L"http://www.msftconnecttest.com/");
+	paFiles[0].LocalName = _wcsdup(L"c:\\TEMP\\bitssample-page.txt");
+	job->AddFileSet(NFilesInSet, paFiles);
+
+
+	// Part 4: Start the job
+	// The link jumps straight to the ::Resume
+	// Doc change: change the link to go to a NEW page that will include this mini-sample
+
+ 	std::wcout << L"Resume the job to start it" << std::endl;
+	hr = job->Resume();
+	if (FAILED(hr)) goto cleanup;
+
+
+
+	// Part 5: Determining the status of a job
+	// Method a: Poll for the status of a job
+	// https://docs.microsoft.com/en-us/windows/desktop/bits/polling-for-the-status-of-the-job
+	// Doc changes: I uncommented the JobStates so they are fully usable (and fixed the compiler error)
+	// Doc changes: I also use the Sleep() instead of a waitable timer (and need to update the docs accordingly)
+	// Doc changes: I don't have a switch based on the state any more
+	// Doc changes: the exit condition is correct now (includes the ACK state and doesn't include TRANSIENT_ERROR)
+	// Doc changes: later on I'll only Complete() the job if it's not in the ACKNOWLEDGED state.
+	// Doc changes: I use the State != <value> compare and not <value> != State. The <value> != State always seems totally backwards
+	// Doc changes: I also enable #pragma warning (error: 4706) // Catch error 4706 assignment in conditional expression
+
+	BG_JOB_STATE State;
 	do
 	{
-		WaitForSingleObject(hTimer, INFINITE);
-
-		//Use JobStates[State] to set the window text in a user interface.
-		hr = pJob->GetState(&State);
-		if (FAILED(hr))
-		{
-			//Handle error
-		}
-		// // // TODO: added this else
-		else
-		{
-			// // // TODO: other uses of std::cout use regular strings, not wide strings. Using regular strings
-			// // // here will cause the JobsStates[State] to print as a pointer!
-			std::wcout << L"UPDATE: STATE=" << JobStates[State] << L"\n";
-		if (BG_JOB_STATE_TRANSFERRED == State) { // // // TODO: added braces everywhere here
-			//Call pJob->Complete(); to acknowledge that the transfer is complete
-			//and make the file available to the client.
-		}
-		else if (BG_JOB_STATE_ERROR == State || BG_JOB_STATE_TRANSIENT_ERROR == State) { // // // TODO: added braces everywhere here
-			//Call pJob->GetError(&pError); to retrieve an IBackgroundCopyError interface 
-			//pointer which you use to determine the cause of the error.
-		}
-		else if (BG_JOB_STATE_TRANSFERRING == State) { // // // TODO: added braces everywhere here
-		 //Call pJob->GetProgress(&Progress); to determine the number of bytes 
-		 //and files transferred.
-		}
+		Sleep(100); // 100 milliseconds
+		hr = job->GetState(&State);
+		if (FAILED(hr)) goto cleanup;
+		std::wcout << L"UPDATE: STATE=" << JobStates[State] << L"\n";
+	} while (State != BG_JOB_STATE_TRANSFERRED &&
+		State != BG_JOB_STATE_ERROR &&
+		State != BG_JOB_STATE_ACKNOWLEDGED); // ACKNOWLEDGED: someone else completed the job for us!
+	
+	// Part 6: Complete the job
+	// https://docs.microsoft.com/en-us/windows/desktop/bits/completing-and-canceling-a-job
+	// Doc changes: this section did not include documentation.
+	// Doc changes: all this code is new.
+	if (State != BG_JOB_STATE_ACKNOWLEDGED)
+	{
+		std::wcout << L"Complete the job" << std::endl;
+		hr = job->Complete();
+		if (FAILED(hr)) goto cleanup;
 	}
-	} while (BG_JOB_STATE_TRANSFERRED != State &&
-		BG_JOB_STATE_ERROR != State &&
-		BG_JOB_STATE_TRANSIENT_ERROR != State);
-	CancelWaitableTimer(hTimer);
-	CloseHandle(hTimer);
-	return true; // // // TODO: return a more useful value for success/failure
-}
+	std::wcout << L"All done" << std::endl;
 
+	return;
+cleanup:
+	// If the job exists, then cancel it. If cancelling fails, do nothing
+	if (job != NULL)
+	{
+		job->Cancel();
+	}
+	// Free is guaranteed to handle NULL pointers.
+	free(paFiles);
+	paFiles = NULL;
+
+
+	// Part 1: Connecting to the BITS Service
+	// Call CoUninitialize()
+	CoUninitialize();
+	std::wcout << L"ERROR: HRESULT=" << std::hex << hr << std::endl;
+}
 
 int main()
 {
 	std::cout << "Hello World!\n";
-	bool connectOK = ConnectToBITS();
-	std::cout << "ConnectToBITS ok=" << connectOK << std::endl; // // //  "\n";
-	if (!connectOK) return 1;
-
-	bool createOK = CreateJob();
-	std::cout << "CreateJob ok=" << createOK << "\n";
-	if (!createOK) return 2;
-
-	bool addFileOK = AddFileToJob();
-	std::cout << "AddFile ok=" << addFileOK << "\n";
-	if (!addFileOK) return 3;
-
-	// // // TODO: we never tell people to RESUME the job!!
-	hr = pJob->Resume();
-	std::cout << "RESUME hr=" << hr << "\n";
-	if (!SUCCEEDED(hr)) return 4;
-
-	std::cout << "Starting to wait..." << "\n";
-	PollJob();
-	std::cout << "...Wait complete" << "\n";
-
-	// // // TODO: no code sample for completing a job!
-	hr = pJob->Complete();
-	std::cout << "COMPLETE hr=" << hr << "\n";
-
-	std::cout << "ALL DONE\n";
+	DownloadFile();
 	return 0;
 }
 

@@ -23,6 +23,7 @@ void DownloadFile()
 
 	const ULONG NFilesInSet = 1;
 	BG_FILE_INFO* paFiles = NULL;
+	auto Notify = new CNotifyInterface(); // For part 5B
 
 
 	const WCHAR *JobStates[] = { L"Queued", L"Connecting", L"Transferring",
@@ -78,6 +79,11 @@ void DownloadFile()
 	paFiles[0].RemoteName = _wcsdup(L"http://www.msftconnecttest.com/");
 	paFiles[0].LocalName = _wcsdup(L"c:\\TEMP\\bitssample-page.txt");
 	job->AddFileSet(NFilesInSet, paFiles);
+
+
+	// Part 5b: set up a notifications for job changes
+	job->SetNotifyInterface(Notify);
+	job->SetNotifyFlags(BG_NOTIFY_JOB_TRANSFERRED | BG_NOTIFY_JOB_ERROR | BG_NOTIFY_JOB_MODIFICATION);
 
 
 	// Part 4: Start the job

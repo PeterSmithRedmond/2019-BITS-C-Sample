@@ -157,38 +157,3 @@ HRESULT CNotifyInterface::JobModification(IBackgroundCopyJob* pJob, DWORD dwRese
 
 	return S_OK;
 }
-
-#if NEVER_EVER_DEFINED
-// Part 5: Determining the status of a job
-// Method b: Registering a COM Callback
-// https://docs.microsoft.com/en-us/windows/desktop/bits/registering-a-com-callback
-// TODO: turn into smart pointers!
-// Doc changes: must be called before the resume! Otherwise the job transfers before 
-// the callbacks get called!
-pNotify = NULL; // // // TODO: DBG: new CNotifyInterface();
-if (pNotify != NULL)
-{
-	hr = job->SetNotifyInterface(pNotify);
-	if (SUCCEEDED(hr))
-	{
-		std::wcout << L"DBG: About to SetNotifyFlags(a)" << std::endl;
-		hr = job->SetNotifyFlags(BG_NOTIFY_JOB_ERROR | BG_NOTIFY_FILE_TRANSFERRED);
-		;
-	}
-}
-
-
-
-
-
-
-
-
-
-
-
-cleanup:
-free(pNotify);
-pNotify = NULL;
-
-#endif

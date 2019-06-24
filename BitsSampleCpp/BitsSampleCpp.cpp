@@ -1,4 +1,7 @@
-
+// Doc plan:
+// Most BITS mini-samples will be updated
+// Not updated:
+// Registering to execute a program: https://docs.microsoft.com/en-us/windows/desktop/bits/registering-to-execute-a-program
 #include "pch.h"
 #include "NotifyInterface.h"
 
@@ -23,7 +26,9 @@ void DownloadFile()
 
 	const ULONG NFilesInSet = 1;
 	BG_FILE_INFO* paFiles = NULL;
-	auto Notify = new CNotifyInterface(); // For part 5B
+	auto pNotify = new CNotifyInterface(); // For part 5B; the new doesn't do an AddRef.
+	pNotify->AddRef();
+	BG_JOB_PROGRESS bitsProgress;
 
 
 	const WCHAR *JobStates[] = { L"Queued", L"Connecting", L"Transferring",
@@ -75,15 +80,25 @@ void DownloadFile()
 	// The following example shows how to add multiple files to the job
 	paFiles = (BG_FILE_INFO*)malloc(sizeof(BG_FILE_INFO) * NFilesInSet);
 	if (paFiles == NULL) goto cleanup;
-	//Doc change: I'm using wcsdup here. I'm also using proper array indexing
+	//Doc change: I'm using wcsdup here. I'm also using standard array indexing instead of pointer arithmetic.
 	paFiles[0].RemoteName = _wcsdup(L"http://www.msftconnecttest.com/");
 	paFiles[0].LocalName = _wcsdup(L"c:\\TEMP\\bitssample-page.txt");
 	job->AddFileSet(NFilesInSet, paFiles);
 
 
+	// The code for Part 5b comes before the code for part 4 (Start the job)
 	// Part 5b: set up a notifications for job changes
-	job->SetNotifyInterface(Notify);
-	job->SetNotifyFlags(BG_NOTIFY_JOB_TRANSFERRED | BG_NOTIFY_JOB_ERROR | BG_NOTIFY_JOB_MODIFICATION);
+	// https://docs.microsoft.com/en-us/windows/desktop/api/Bits/nf-bits-ibackgroundcopyjob-setnotifyinterface
+
+	hr = job->SetNotifyInterface(pNotify);
+	// BITS has taken a reference on the Notify object; remove our reference to it.
+	// Remove our reference regardless of whether or not the notify succeeded or not.
+	pNotify->Release();
+	pNotify = NULL;
+	if (FAILED(hr)) goto cleanup;
+
+	hr = job->SetNotifyFlags(BG_NOTIFY_JOB_TRANSFERRED | BG_NOTIFY_JOB_ERROR | BG_NOTIFY_JOB_MODIFICATION);
+	if (FAILED(hr)) goto cleanup;
 
 
 	// Part 4: Start the job
@@ -113,7 +128,34 @@ void DownloadFile()
 		Sleep(100); // 100 milliseconds
 		hr = job->GetState(&State);
 		if (FAILED(hr)) goto cleanup;
-		std::wcout << L"UPDATE: STATE=" << JobStates[State] << L"\n";
+		std::wcout << L"POLLING LOOP: STATE=" << JobStates[State] << L"\n";
+
+		// Part 5d: Determining the progress of a job.
+		// https://docs.microsoft.com/en-us/windows/desktop/bits/determining-the-progress-of-a-job		// doc changes: removing all of the StringCchPrintf stuff in favor of plain std::wcout
+		hr = job->GetProgress(&bitsProgress);
+		if (FAILED(hr))
+		{
+			//Handle error
+			std::wcout << L"POLLING LOOP: Error: unable to get progress for job" << std::endl;
+		}
+		else
+		{
+			//Because the BytesTotal member can be 0 or BG_SIZE_UNKNOWN, you may not be able 
+			//to determine a percentage value to display, such as 57%. It is best to display a 
+			//string that shows the number of bytes transferred. For example, "123456 of 
+			//999999" or "123456 of Unknown".
+			if (bitsProgress.BytesTotal == BG_SIZE_UNKNOWN)
+			{
+				std::wcout << L"POLLING LOOP: Transferred " << bitsProgress.BytesTransferred << L" bytes of " << "unknown" << std::endl;
+			}
+			else
+			{
+				std::wcout << L"POLLING LOOP: Transferred " << bitsProgress.BytesTransferred << L" bytes of " << bitsProgress.BytesTotal << std::endl;
+			}
+			std::wcout << L"POLLING LOOP: Transferred " << bitsProgress.FilesTransferred << L" files of " << bitsProgress.FilesTotal << std::endl;
+		}
+
+
 	} while (State != BG_JOB_STATE_TRANSFERRED &&
 		State != BG_JOB_STATE_ERROR &&
 		State != BG_JOB_STATE_ACKNOWLEDGED); // ACKNOWLEDGED: someone else completed the job for us!

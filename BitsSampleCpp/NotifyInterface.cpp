@@ -1,7 +1,8 @@
 #include "pch.h"
 #include "NotifyInterface.h"
 
-// Doc status: do not review! This hasn't be updated to the modern style yet + it doesn't actually work.
+
+// https://docs.microsoft.com/en-us/windows/desktop/bits/registering-a-com-callback// https://docs.microsoft.com/en-us/windows/desktop/api/bits/nn-bits-ibackgroundcopycallback
 
 HRESULT CNotifyInterface::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {
@@ -126,6 +127,7 @@ HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyErro
 
 HRESULT CNotifyInterface::JobModification(IBackgroundCopyJob* pJob, DWORD dwReserved)
 {
+	//TODO: doc change: this callback will be called re-entrantly. Should we demonstrate re-entrant-proof techniques?
 	HRESULT hr;
 	WCHAR* pszJobName = NULL;
 	BG_JOB_PROGRESS Progress;
@@ -145,7 +147,7 @@ HRESULT CNotifyInterface::JobModification(IBackgroundCopyJob* pJob, DWORD dwRese
 			hr = pJob->GetState(&State);
 			if (SUCCEEDED(hr))
 			{
-				std::wcout << L"NotifyInterface::JobModification New state=" << JobStates[State] << std::endl;
+				std::wcout << L"NotifyInterface::JobModification New state=" << JobStates[State] << L" Job=" << pszJobName << std::endl;
 				//Do something with the progress and state information.
 				//BITS generates a high volume of modification
 				//callbacks. Use this callback with discretion. Consider creating a timer and 

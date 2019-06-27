@@ -1,7 +1,8 @@
 // Doc plan:
 // Most BITS mini-samples will be updated
 // Not updated:
-// Registering to execute a program: https://docs.microsoft.com/en-us/windows/desktop/bits/registering-to-execute-a-program
+// Registering to execute a program: https://docs.microsoft.com/en-us/windows/desktop/bits/registering-to-execute-a-program
+
 #include "pch.h"
 #include "NotifyInterface.h"
 
@@ -51,6 +52,12 @@ void DownloadFile()
 	hr = bcm.CreateInstance(__uuidof(BackgroundCopyManager));
 	if (FAILED(hr)) goto cleanup;
 
+	// Enumerating jobs in the transfer queue
+	// https://docs.microsoft.com/en-us/windows/desktop/bits/enumerating-jobs-in-the-transfer-queue
+	// This code won't be part of the sample
+	EnumerateJobsAndFiles(bcm);
+
+
 	// Part 1: Connecting to the BITS Service
 	// The following code shows how to use one of the symbolic class identifiers.
 	// This will only work when the code is run on a system that includes BITS 10.2
@@ -72,7 +79,8 @@ void DownloadFile()
 	if (FAILED(hr)) goto cleanup;
 
 	// Part 3: Adding Files to a Job
-	// https://docs.microsoft.com/en-us/windows/desktop/bits/adding-files-to-a-job	std::wcout << L"Add a file" << std::endl;
+	// https://docs.microsoft.com/en-us/windows/desktop/bits/adding-files-to-a-job
+	std::wcout << L"Add a file" << std::endl;
 	// The c:\temp directory must exist
 	hr = job5->AddFile(L"http://www.msftconnecttest.com/ncsi.txt", L"c:\\TEMP\\bitssample-nsci.txt");
 	if (FAILED(hr)) goto cleanup;
@@ -99,6 +107,21 @@ void DownloadFile()
 
 	hr = job->SetNotifyFlags(BG_NOTIFY_JOB_TRANSFERRED | BG_NOTIFY_JOB_ERROR | BG_NOTIFY_JOB_MODIFICATION);
 	if (FAILED(hr)) goto cleanup;
+
+
+	// CALL FOR OTHER SNIPPET:
+	// How to control whether a BITS job is allowed to download over an expensive connection.
+	// This function call snippet is not included in the docs
+	// https://docs.microsoft.com/en-us/windows/desktop/bits/how-to-block-a-bits-job-from-downloading-over-an-expensive-connection
+	
+
+	std::wcout << L"Set the transfer policy" << std::endl;
+	hr = SpecifyTransferPolicy(job);
+	if (FAILED(hr)) goto cleanup;
+	std::wcout << L"Set the transfer policy" << std::endl;
+
+
+
 
 
 	// Part 4: Start the job
@@ -131,7 +154,10 @@ void DownloadFile()
 		std::wcout << L"POLLING LOOP: STATE=" << JobStates[State] << L"\n";
 
 		// Part 5d: Determining the progress of a job.
-		// https://docs.microsoft.com/en-us/windows/desktop/bits/determining-the-progress-of-a-job		// doc changes: removing all of the StringCchPrintf stuff in favor of plain std::wcout
+		// https://docs.microsoft.com/en-us/windows/desktop/bits/determining-the-progress-of-a-job
+		// doc changes: removing all of the StringCchPrintf stuff in favor of plain std::wcout
+
+
 		hr = job->GetProgress(&bitsProgress);
 		if (FAILED(hr))
 		{
@@ -160,6 +186,11 @@ void DownloadFile()
 		State != BG_JOB_STATE_ERROR &&
 		State != BG_JOB_STATE_ACKNOWLEDGED); // ACKNOWLEDGED: someone else completed the job for us!
 	
+
+	// Part of the display file headers code snippet
+	DisplayFileHeaders(job);
+
+
 	// Part 6: Complete the job
 	// https://docs.microsoft.com/en-us/windows/desktop/bits/completing-and-canceling-a-job
 	// Doc changes: this section did not include documentation.

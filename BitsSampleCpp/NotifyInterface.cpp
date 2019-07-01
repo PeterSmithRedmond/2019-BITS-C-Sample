@@ -5,6 +5,7 @@
 // https://docs.microsoft.com/en-us/windows/desktop/bits/registering-a-com-callback
 // https://docs.microsoft.com/en-us/windows/desktop/api/bits/nn-bits-ibackgroundcopycallback
 
+//TODO: WIL library might well have something for the boilerplate already.
 HRESULT CNotifyInterface::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {
 	if (riid == __uuidof(IUnknown) || riid == __uuidof(IBackgroundCopyCallback))
@@ -35,7 +36,7 @@ ULONG CNotifyInterface::Release()
 		delete this;
 	}
 
-	return ulCount;
+	return ulCount; //TODO: how is this not completely wrong? The this pointer is potentially gone!
 }
 
 HRESULT CNotifyInterface::JobTransferred(IBackgroundCopyJob* pJob)
@@ -59,6 +60,7 @@ HRESULT CNotifyInterface::JobTransferred(IBackgroundCopyJob* pJob)
 	return S_OK;
 }
 
+//doc: TODO: this needs to be updated with smart pointers.
 HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyError* pError)
 {
 	HRESULT hr;
@@ -128,7 +130,7 @@ HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyErro
 
 HRESULT CNotifyInterface::JobModification(IBackgroundCopyJob* pJob, DWORD dwReserved)
 {
-	//TODO: doc change: this callback will be called re-entrantly. Should we demonstrate re-entrant-proof techniques?
+	//TODO: doc change: this callback will be called concurrently. Should we demonstrate re-entrant-proof techniques?
 	HRESULT hr;
 	WCHAR* pszJobName = NULL;
 	BG_JOB_PROGRESS Progress;
@@ -153,6 +155,9 @@ HRESULT CNotifyInterface::JobModification(IBackgroundCopyJob* pJob, DWORD dwRese
 				//BITS generates a high volume of modification
 				//callbacks. Use this callback with discretion. Consider creating a timer and 
 				//polling for state and progress information.
+
+				//TODO: the output can be comingled. We should do a lock here. 
+				// Team recommendation for lock is --- do a Bing search :-)
 			}
 		}
 		CoTaskMemFree(pszJobName);

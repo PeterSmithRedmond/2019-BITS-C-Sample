@@ -1,5 +1,7 @@
 #include "pch.h"
 
+
+// TODO: put these functions into a simple class.
 HRESULT SpecifyTransferPolicy(_com_ptr_t<_com_IIID<IBackgroundCopyJob, &__uuidof(IBackgroundCopyJob)>> job)
 {
 	// The IBackgroundCopyJob5 interface was added in BITS 5 as part of Windows 8
@@ -7,6 +9,7 @@ HRESULT SpecifyTransferPolicy(_com_ptr_t<_com_IIID<IBackgroundCopyJob, &__uuidof
 	HRESULT hr = job->QueryInterface<IBackgroundCopyJob5>(&job5);
 	if (FAILED(hr)) goto cleanup;
 
+	//TODO: pick the most useful set of bits
 	BITS_JOB_PROPERTY_VALUE propval;
 	propval.Dword = BITS_COST_STATE_USAGE_BASED
 		| BITS_COST_STATE_OVERCAP_THROTTLED

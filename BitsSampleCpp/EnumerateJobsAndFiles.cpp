@@ -22,6 +22,7 @@ HRESULT EnumerateJobsAndFiles(_com_ptr_t<_com_IIID<IBackgroundCopyManager, &__uu
 
 	HRESULT hr = mgr->EnumJobs(0, &jobs); // 0 means enumerate just for this user
 	if (FAILED(hr)) goto cleanup;
+	 //TODO: make an enum for BG_JOB_ENUM_CURRENT_USER (file bug)
 
 	jobs->GetCount(&jobCount);
 	std::wcout << L"Enumerate: job count=" << jobCount << std::endl;
@@ -38,7 +39,8 @@ HRESULT EnumerateJobsAndFiles(_com_ptr_t<_com_IIID<IBackgroundCopyManager, &__uu
 
 		std::wcout << L"ENUMERATE: Job " << jobIndex << " name=" << pszJobName << std::endl;
 
-		// Enumerating files in a job
+		//TODO: convert ;this section to be its own function.
+		// doc: Enumerating files in a job
 		// https://docs.microsoft.com/en-us/windows/desktop/bits/enumerating-files-in-a-job
 
 		hr = job->EnumFiles(&files);
@@ -53,15 +55,18 @@ HRESULT EnumerateJobsAndFiles(_com_ptr_t<_com_IIID<IBackgroundCopyManager, &__uu
 			if (FAILED(hr)) goto cleanup;
 
 			WCHAR *remoteName;
-			WCHAR *localName;
+			// WCHAR *localName;
 			hr = file->GetRemoteName(&remoteName); //handle hr.
 			std::unique_ptr<WCHAR, CoTaskMemDeleter> remoteNameGuard(remoteName);
 
-			hr = file->GetLocalName(&localName); // TODO: free this memory. handle hr.
-			std::unique_ptr<WCHAR, CoTaskMemDeleter> localNameGuard(localName);
+			std::unique_ptr<LPWSTR, CoTaskMemDeleter> localName; //TODO: figure out the way to use the WIL stuff for this
+			hr = file->GetLocalName(localName.get());
+			// std::unique_ptr<WCHAR, CoTaskMemDeleter> localNameGuard(localName);
 
 			std::wcout << L"    ENUMERATE: file " << fileIndex << " remote=" << remoteName << " local=" << localName << std::endl;
 		}
+
+		// doc: End of enumerating files in a job
 	}
 
 	return hr; // S_OK

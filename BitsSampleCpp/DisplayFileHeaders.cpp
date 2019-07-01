@@ -7,7 +7,10 @@ struct CoTaskMemDeleter {
 	void operator()(void *p) { ::CoTaskMemFree(p); }
 };
 
+// TODO: team concensus is to not have any GOTO CLEANUP at all anywhere; instead just return the hr.
+
 // For each file in the job, obtain and display the HTTP header received server.
+//TODO: the _com_ptr_t is totally uneeded here and should be just IBackgroundCopyJob*
 HRESULT DisplayFileHeaders(_com_ptr_t<_com_IIID<IBackgroundCopyJob, &__uuidof(IBackgroundCopyJob)>> job)
 {
 	HRESULT hr;

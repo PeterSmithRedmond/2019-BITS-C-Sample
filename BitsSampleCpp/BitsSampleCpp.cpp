@@ -61,6 +61,7 @@ void DownloadFile()
 	// Part 1: Connecting to the BITS Service
 	// The following code shows how to use one of the symbolic class identifiers.
 	// This will only work when the code is run on a system that includes BITS 10.2
+	// TODO: TEAM: no point in doing this other thing. Just do the one standard way. This other way isn't adding anything of value.
 	std::wcout << L"Create the BackgroundCopyManager for BITS 10.2" << std::endl;
 	hr = bcm10_2.CreateInstance(CLSID_BackgroundCopyManager10_2);
 	if (FAILED(hr)) goto cleanup;
@@ -87,13 +88,18 @@ void DownloadFile()
 
 	// The following example shows how to add multiple files to the job
 	paFiles = (BG_FILE_INFO*)malloc(sizeof(BG_FILE_INFO) * NFilesInSet);
+	// // // TODO: use this other way. and make the strings work. BG_FILE_INFO fileset[1] = { { L"", L"" }  }; //.LocalName = ""; //TODO: make this 
 	if (paFiles == NULL) goto cleanup;
 	//Doc change: I'm using wcsdup here. I'm also using standard array indexing instead of pointer arithmetic.
+	// TODO: maybe cast as a const? Can't keep as wcsdup because that's weird and doesn't get freed automatically.
 	paFiles[0].RemoteName = _wcsdup(L"http://www.msftconnecttest.com/");
 	paFiles[0].LocalName = _wcsdup(L"c:\\TEMP\\bitssample-page.txt");
 	job->AddFileSet(NFilesInSet, paFiles);
 
 
+	//TODo: team recommendation: this giant sample should just be a set of function calls, one for each logical part of the sample.
+	// That wat the big sample is a short little thing with high level details only.
+	//TOOD: move this into a seperate function.
 	// The code for Part 5b comes before the code for part 4 (Start the job)
 	// Part 5b: set up a notifications for job changes
 	// https://docs.microsoft.com/en-us/windows/desktop/api/Bits/nf-bits-ibackgroundcopyjob-setnotifyinterface
@@ -145,6 +151,7 @@ void DownloadFile()
 	// Doc changes: I use the State != <value> compare and not <value> != State. The <value> != State always seems totally backwards
 	// Doc changes: I also enable #pragma warning (error: 4706) // Catch error 4706 assignment in conditional expression
 
+	// TODO: when we switch to not having goto cleanup, move the variable definitions closer to where they are used.
 	BG_JOB_STATE State;
 	do
 	{

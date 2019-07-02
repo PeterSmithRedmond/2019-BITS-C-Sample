@@ -10,10 +10,14 @@
 #include <comdef.h>
 #include <comip.h>
 
+#include "NotifyInterface.h"
+#include <wil\com.h>
+#include <wil\Resource.h>
+#define IFFAILRETURN(hr) if (FAILED (hr)) return hr;
 
 // Functions that are uses here and there.
-HRESULT EnumerateJobsAndFiles(_com_ptr_t<_com_IIID<IBackgroundCopyManager, &__uuidof(IBackgroundCopyManager)>> mgr);
-HRESULT SpecifyTransferPolicy(_com_ptr_t<_com_IIID<IBackgroundCopyJob, &__uuidof(IBackgroundCopyJob)>> job);
-HRESULT DisplayFileHeaders(_com_ptr_t<_com_IIID<IBackgroundCopyJob, &__uuidof(IBackgroundCopyJob)>> job);
-HRESULT DisplayErrors(_com_ptr_t<_com_IIID<IBackgroundCopyJob, &__uuidof(IBackgroundCopyJob)>> job);
+HRESULT EnumerateJobsAndFiles(IBackgroundCopyManager* mgr);
+HRESULT SpecifyTransferPolicy(IBackgroundCopyJob* job);
+HRESULT DisplayFileHeaders(IBackgroundCopyJob* job);
+HRESULT DisplayErrors(IBackgroundCopyJob* job);
 

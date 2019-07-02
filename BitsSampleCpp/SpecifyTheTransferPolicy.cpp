@@ -2,7 +2,7 @@
 
 
 // TODO: put these functions into a simple class.
-HRESULT SpecifyTransferPolicy(_com_ptr_t<_com_IIID<IBackgroundCopyJob, &__uuidof(IBackgroundCopyJob)>> job)
+HRESULT SpecifyTransferPolicy(IBackgroundCopyJob* job)
 {
 	// The IBackgroundCopyJob5 interface was added in BITS 5 as part of Windows 8
 	_com_ptr_t<_com_IIID<IBackgroundCopyJob5, &__uuidof(IBackgroundCopyJob5)>> job5;

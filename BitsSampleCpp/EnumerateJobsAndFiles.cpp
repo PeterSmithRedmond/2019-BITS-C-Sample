@@ -10,7 +10,7 @@ struct CoTaskMemDeleter {
 	void operator()(void *p) { ::CoTaskMemFree(p); }
 };
 
-HRESULT EnumerateJobsAndFiles(_com_ptr_t<_com_IIID<IBackgroundCopyManager, &__uuidof(IBackgroundCopyManager)>> mgr)
+HRESULT EnumerateJobsAndFiles(IBackgroundCopyManager* mgr)
 {
 	_com_ptr_t<_com_IIID<IEnumBackgroundCopyJobs, &__uuidof(IEnumBackgroundCopyJobs)>> jobs;
 	_com_ptr_t<_com_IIID<IBackgroundCopyJob, &__uuidof(IBackgroundCopyJob)>> job;

@@ -8,7 +8,7 @@ struct CoTaskMemDeleter {
 };
 
 // For each file in the job, obtain and display the HTTP header received server.
-HRESULT DisplayErrors(_com_ptr_t<_com_IIID<IBackgroundCopyJob, &__uuidof(IBackgroundCopyJob)>> job)
+HRESULT DisplayErrors(IBackgroundCopyJob* job)
 {
 	HRESULT hr = 0;
 	HRESULT hrError = 0;

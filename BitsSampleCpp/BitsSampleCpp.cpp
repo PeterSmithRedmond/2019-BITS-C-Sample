@@ -2,9 +2,11 @@
 // Most BITS mini-samples will be updated
 // Not updated:
 // Registering to execute a program: https://docs.microsoft.com/en-us/windows/desktop/bits/registering-to-execute-a-program
+// Using WIL wrappers https://github.com/microsoft/wil/wiki/WinRT-and-COM-wrappers
+
 
 #include "pch.h"
-#include "NotifyInterface.h"
+
 
 // doc update: mention that you need the bits.lib in order to get the CLSID values.
 #pragma comment (lib, "bits.lib")
@@ -97,7 +99,7 @@ void DownloadFile()
 	job->AddFileSet(NFilesInSet, paFiles);
 
 
-	//TODo: team recommendation: this giant sample should just be a set of function calls, one for each logical part of the sample.
+	//TODO: team recommendation: this giant sample should just be a set of function calls, one for each logical part of the sample.
 	// That wat the big sample is a short little thing with high level details only.
 	//TOOD: move this into a seperate function.
 	// The code for Part 5b comes before the code for part 4 (Start the job)

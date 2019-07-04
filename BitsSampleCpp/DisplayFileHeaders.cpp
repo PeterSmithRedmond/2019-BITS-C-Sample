@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
 #include "pch.h"
 
 // https://docs.microsoft.com/en-us/windows/desktop/bits/how-to-get-the-last-set-of-http-headers-received-for-each-file-in-a-bits-download-job
@@ -7,14 +9,14 @@
 HRESULT DisplayFileHeaders(IBackgroundCopyJob* job)
 {
 	HRESULT hr;
-	wil::com_ptr_nothrow<IEnumBackgroundCopyFiles> fileEnumerator;
-	wil::com_ptr_nothrow<IBackgroundCopyFile5> file5;
 
+	wil::com_ptr_nothrow<IEnumBackgroundCopyFiles> fileEnumerator;
 	hr = job->EnumFiles(&fileEnumerator);
 	IFFAILRETURN(hr);
 
 	ULONG count;
 	hr = fileEnumerator->GetCount(&count);
+	IFFAILRETURN(hr);
 
 	for (ULONG i = 0; i < count; ++i)
 	{
@@ -23,14 +25,14 @@ HRESULT DisplayFileHeaders(IBackgroundCopyJob* job)
 		IFFAILRETURN(hr);
 
 		// The IBackgroundCopyJob5 interface was added in BITS 5 as part of Windows 8
+		wil::com_ptr_nothrow<IBackgroundCopyFile5> file5;
 		hr = file.query_to<IBackgroundCopyFile5>(&file5);
 		IFFAILRETURN(hr);
 
-		WCHAR* remoteFileName;
+		wil::unique_cotaskmem_string remoteFileName;
 		hr = file5->GetRemoteName(&remoteFileName);
 		IFFAILRETURN(hr);
-		wil::unique_cotaskmem_ptr<WCHAR> remoteFileNameGuard(remoteFileName);
-		std::wcout << L"File URL: " << remoteFileName << std::endl; // doc change: use std::wcout
+		std::wcout << L"File URL: " << &remoteFileName << std::endl;
 
 		BITS_FILE_PROPERTY_VALUE value;
 		hr = file5->GetProperty(BITS_FILE_PROPERTY_ID_HTTP_RESPONSE_HEADERS, &value);
@@ -38,7 +40,7 @@ HRESULT DisplayFileHeaders(IBackgroundCopyJob* job)
 		if (value.String)
 		{
 			wil::unique_cotaskmem_ptr<WCHAR> valueStringGuard(value.String);
-			std::wcout << L"Headers: " << value.String << std::endl; //doc change: use correct name and switch to wcout
+			std::wcout << L"Headers: " << value.String << std::endl;
 		}
 	}
 

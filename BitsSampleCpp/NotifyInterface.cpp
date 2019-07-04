@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 #include "pch.h"
 #include "NotifyInterface.h"
 
@@ -36,7 +39,7 @@ ULONG CNotifyInterface::Release()
 		delete this;
 	}
 
-	return ulCount; //TODO: how is this not completely wrong? The this pointer is potentially gone!
+	return ulCount;
 }
 
 HRESULT CNotifyInterface::JobTransferred(IBackgroundCopyJob* pJob)
@@ -49,12 +52,7 @@ HRESULT CNotifyInterface::JobTransferred(IBackgroundCopyJob* pJob)
 	std::wcout << L"NotifyInterface::JobTransferred" << std::endl;
 
 	hr = pJob->Complete();
-	if (FAILED(hr))
-	{
-		//Handle error. BITS probably was unable to rename one or more of the 
-		//temporary files. See the Remarks section of the IBackgroundCopyJob::Complete 
-		//method for more details.
-	}
+	IFFAILRETURN(hr);
 
 	//If you do not return S_OK, BITS continues to call this callback.
 	return S_OK;
@@ -64,12 +62,8 @@ HRESULT CNotifyInterface::JobTransferred(IBackgroundCopyJob* pJob)
 HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyError* pError)
 {
 	HRESULT hr;
-	BG_FILE_PROGRESS Progress;
-	BG_ERROR_CONTEXT Context;
-	HRESULT ErrorCode = S_OK;
-	WCHAR* pszJobName = NULL;
-	WCHAR* pszErrorDescription = NULL;
-	BOOL IsError = TRUE;
+	HRESULT errorCode = S_OK;
+	BOOL isError = TRUE;
 
 	std::wcout << L"NotifyInterface::JobError" << std::endl;
 	//Use pJob and pError to retrieve information of interest. For example,
@@ -78,22 +72,27 @@ HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyErro
 	//BG_JOB_CONTEXT_REMOTE_APPLICATION, the server application that received the 
 	//upload file failed.
 
-	hr = pError->GetError(&Context, &ErrorCode);
+	BG_ERROR_CONTEXT context;
+	hr = pError->GetError(&context, &errorCode);
 
 	//If the proxy or server does not support the Content-Range header or if
 	//antivirus software removes the range requests, BITS returns BG_E_INSUFFICIENT_RANGE_SUPPORT.
 	//This implementation tries to switch the job to foreground priority, so
 	//the content has a better chance of being successfully downloaded.
-	if (BG_E_INSUFFICIENT_RANGE_SUPPORT == ErrorCode)
+	if (errorCode == BG_E_INSUFFICIENT_RANGE_SUPPORT)
 	{
-		IBackgroundCopyFile *pFile;
-		hr = pError->GetFile(&pFile);
-		hr = pFile->GetProgress(&Progress);
-		if (BG_SIZE_UNKNOWN == Progress.BytesTotal)
+		wil::com_ptr_nothrow<IBackgroundCopyFile> file;
+		hr = pError->GetFile(&file);
+		IFFAILRETURN(hr);
+
+		BG_FILE_PROGRESS progress;
+		hr = file->GetProgress(&progress);
+		IFFAILRETURN(hr);
+		if (progress.BytesTotal == BG_SIZE_UNKNOWN)
 		{
 			//The content is dynamic, do not change priority. Handle as an error.
 		}
-		else if (Progress.BytesTotal > TWO_GB)
+		else if (progress.BytesTotal > TWO_GB)
 		{
 			// BITS requires range requests support if the content is larger than 2 GB.
 			// For these scenarios, BITS uses 2 GB ranges to download the file,
@@ -104,24 +103,23 @@ HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyErro
 		{
 			hr = pJob->SetPriority(BG_JOB_PRIORITY_FOREGROUND);
 			hr = pJob->Resume();
-			IsError = FALSE;
+			//TODO: why doesn't the code call IFFAILRETURN()?
+			isError = FALSE;
 		}
-
-		pFile->Release();
 	}
 
-	if (TRUE == IsError)
+	if (isError == TRUE)
 	{
-		hr = pJob->GetDisplayName(&pszJobName);
-		hr = pError->GetErrorDescription(LANGIDFROMLCID(GetThreadLocale()), &pszErrorDescription);
+		wil::unique_cotaskmem_string jobName;
+		wil::unique_cotaskmem_string errorDescription;
 
-		if (pszJobName && pszErrorDescription)
+		hr = pJob->GetDisplayName(&jobName);
+		hr = pError->GetErrorDescription(LANGIDFROMLCID(GetThreadLocale()), &errorDescription);
+
+		if (&jobName && &errorDescription)
 		{
-			//Do something with the job name and description. 
+			std::wcout << L"ERROR: job=" << &jobName << L" description=" << &errorDescription << std::endl;
 		}
-
-		CoTaskMemFree(pszJobName);
-		CoTaskMemFree(pszErrorDescription);
 	}
 
 	//If you do not return S_OK, BITS continues to call this callback.
@@ -132,7 +130,6 @@ HRESULT CNotifyInterface::JobModification(IBackgroundCopyJob* pJob, DWORD dwRese
 {
 	//TODO: doc change: this callback will be called concurrently. Should we demonstrate re-entrant-proof techniques?
 	HRESULT hr;
-	WCHAR* pszJobName = NULL;
 	BG_JOB_PROGRESS Progress;
 	BG_JOB_STATE State;
 
@@ -140,28 +137,23 @@ HRESULT CNotifyInterface::JobModification(IBackgroundCopyJob* pJob, DWORD dwRese
 						   L"Suspended", L"Error", L"Transient Error",
 						   L"Transferred", L"Acknowledged", L"Canceled"
 	};
+	wil::unique_cotaskmem_string jobName;
+	hr = pJob->GetDisplayName(&jobName);
+	IFFAILRETURN(hr);
 
-	hr = pJob->GetDisplayName(&pszJobName);
-	if (SUCCEEDED(hr))
-	{
-		hr = pJob->GetProgress(&Progress);
-		if (SUCCEEDED(hr))
-		{
-			hr = pJob->GetState(&State);
-			if (SUCCEEDED(hr))
-			{
-				std::wcout << L"NotifyInterface::JobModification New state=" << JobStates[State] << L" Job=" << pszJobName << std::endl;
-				//Do something with the progress and state information.
-				//BITS generates a high volume of modification
-				//callbacks. Use this callback with discretion. Consider creating a timer and 
-				//polling for state and progress information.
+	hr = pJob->GetProgress(&Progress);
+	IFFAILRETURN(hr);
 
-				//TODO: the output can be comingled. We should do a lock here. 
-				// Team recommendation for lock is --- do a Bing search :-)
-			}
-		}
-		CoTaskMemFree(pszJobName);
-	}
+	hr = pJob->GetState(&State);
+	IFFAILRETURN(hr);
 
-	return S_OK;
+	std::wcout << L"NotifyInterface::JobModification New state=" << JobStates[State] << L" Job=" << &jobName << std::endl;
+	//Do something with the progress and state information.
+	//BITS generates a high volume of modification
+	//callbacks. Use this callback with discretion. Consider creating a timer and 
+	//polling for state and progress information.
+
+	//TODO: the output can be comingled. We should do a lock here. 
+	// Team recommendation for lock is --- do a Bing search :-)
+	return hr;
 }

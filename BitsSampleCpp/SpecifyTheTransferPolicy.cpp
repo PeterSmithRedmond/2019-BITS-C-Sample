@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 #include "pch.h"
 
 
@@ -5,9 +8,9 @@
 HRESULT SpecifyTransferPolicy(IBackgroundCopyJob* job)
 {
 	// The IBackgroundCopyJob5 interface was added in BITS 5 as part of Windows 8
-	_com_ptr_t<_com_IIID<IBackgroundCopyJob5, &__uuidof(IBackgroundCopyJob5)>> job5;
+	wil::com_ptr_nothrow<IBackgroundCopyJob5> job5;
 	HRESULT hr = job->QueryInterface<IBackgroundCopyJob5>(&job5);
-	if (FAILED(hr)) goto cleanup;
+	IFFAILRETURN(hr);
 
 	//TODO: pick the most useful set of bits
 	BITS_JOB_PROPERTY_VALUE propval;
@@ -18,9 +21,6 @@ HRESULT SpecifyTransferPolicy(IBackgroundCopyJob* job)
 		| BITS_COST_STATE_UNRESTRICTED;
 
 	hr = job5->SetProperty(BITS_JOB_PROPERTY_ID_COST_FLAGS, propval);
-	if (FAILED(hr)) goto cleanup;
-	return hr;
-cleanup:
-	std::wcout << L"ERROR: unable to set job Cost property" << std::hex << std::endl;
+	IFFAILRETURN(hr);
 	return hr;
 }

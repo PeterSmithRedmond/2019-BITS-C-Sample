@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 // Doc plan:
 // Most BITS mini-samples will be updated
 // Not updated:
@@ -18,22 +21,8 @@
 
 
 
-void DownloadFile()
+HRESULT DownloadFile()
 {
-	_COM_SMARTPTR_TYPEDEF(IBackgroundCopyManager, __uuidof(IBackgroundCopyManager));
-	_COM_SMARTPTR_TYPEDEF(IBackgroundCopyJob, __uuidof(IBackgroundCopyJob));
-	_com_ptr_t<_com_IIID<IBackgroundCopyManager, &__uuidof(IBackgroundCopyManager)>> bcm = NULL;
-	_com_ptr_t<_com_IIID<IBackgroundCopyManager, &__uuidof(IBackgroundCopyManager)>> bcm10_2 = NULL;
-	_com_ptr_t<_com_IIID<IBackgroundCopyJob, &__uuidof(IBackgroundCopyJob)>> job = NULL;
-	_com_ptr_t<_com_IIID<IBackgroundCopyJob5, &__uuidof(IBackgroundCopyJob5)>> job5 = NULL;
-
-	const ULONG NFilesInSet = 1;
-	BG_FILE_INFO* paFiles = NULL;
-	auto pNotify = new CNotifyInterface(); // For part 5B; the new doesn't do an AddRef.
-	pNotify->AddRef();
-	BG_JOB_PROGRESS bitsProgress;
-
-
 	const WCHAR *JobStates[] = { L"Queued", L"Connecting", L"Transferring",
 						   L"Suspended", L"Error", L"Transient Error",
 						   L"Transferred", L"Acknowledged", L"Canceled"
@@ -47,51 +36,62 @@ void DownloadFile()
 	std::wcout << L"Initialize COM" << std::endl;
 	// // // TODO: what are the allowed values for the coinitialize?
 	// // // Started as COINIT_APARTMENTTHREADED but COINIT_MULTITHREADED is the 'default'
+	//TODO: what's the WIL way to uninitialize?
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-	if (FAILED(hr)) goto cleanup;
+	IFFAILRETURN(hr);
 
 	std::wcout << L"Create the BackgroundCopyManager" << std::endl;
-	hr = bcm.CreateInstance(__uuidof(BackgroundCopyManager));
-	if (FAILED(hr)) goto cleanup;
+	// BITS runs in a seperate process, so you have to specify CLSCTX_LOCAL_SERVER
+	wil::com_ptr_nothrow<IBackgroundCopyManager> bcm 
+		= wil::CoCreateInstance<BackgroundCopyManager, IBackgroundCopyManager>(CLSCTX_LOCAL_SERVER);
+
+	IFFAILRETURN(hr); //TODO: error; hr hasn't been set by this call.
 
 	// Enumerating jobs in the transfer queue
 	// https://docs.microsoft.com/en-us/windows/desktop/bits/enumerating-jobs-in-the-transfer-queue
 	// This code won't be part of the sample
-	EnumerateJobsAndFiles(bcm);
+	EnumerateJobsAndFiles(bcm.get());
 
 
 	// Part 1: Connecting to the BITS Service
 	// The following code shows how to use one of the symbolic class identifiers.
 	// This will only work when the code is run on a system that includes BITS 10.2
 	// TODO: TEAM: no point in doing this other thing. Just do the one standard way. This other way isn't adding anything of value.
-	std::wcout << L"Create the BackgroundCopyManager for BITS 10.2" << std::endl;
-	hr = bcm10_2.CreateInstance(CLSID_BackgroundCopyManager10_2);
-	if (FAILED(hr)) goto cleanup;
+
 
 	// Part 2: Creating a job
 	// https://docs.microsoft.com/en-us/windows/desktop/bits/creating-a-job
 	std::wcout << L"Create the job" << std::endl;
 	GUID JobId;
+	wil::com_ptr_nothrow<IBackgroundCopyJob> job;
 	hr = bcm->CreateJob(L"My simple job", BG_JOB_TYPE_DOWNLOAD, &JobId, &job);
-	if (FAILED(hr)) goto cleanup;
+	IFFAILRETURN(hr);
 
 	// To get the latest IBackgroundCopyJob, call the IBackgroundCopyJob::QueryInterface
 	// IBackgroundCopyJob5 cindlues the GetProperty and SetProperty interfaces.
 	std::wcout << L"Create the IBackgroundCopyJob5 version of the job" << std::endl;
+	wil::com_ptr_nothrow<IBackgroundCopyJob5> job5;
 	hr = job->QueryInterface<IBackgroundCopyJob5>(&job5);
-	if (FAILED(hr)) goto cleanup;
+	IFFAILRETURN(hr);
 
 	// Part 3: Adding Files to a Job
 	// https://docs.microsoft.com/en-us/windows/desktop/bits/adding-files-to-a-job
 	std::wcout << L"Add a file" << std::endl;
 	// The c:\temp directory must exist
 	hr = job5->AddFile(L"http://www.msftconnecttest.com/ncsi.txt", L"c:\\TEMP\\bitssample-nsci.txt");
-	if (FAILED(hr)) goto cleanup;
+	IFFAILRETURN(hr);
 
 	// The following example shows how to add multiple files to the job
+	const ULONG NFilesInSet = 1;
+
+	BG_FILE_INFO* paFiles = NULL;
 	paFiles = (BG_FILE_INFO*)malloc(sizeof(BG_FILE_INFO) * NFilesInSet);
 	// // // TODO: use this other way. and make the strings work. BG_FILE_INFO fileset[1] = { { L"", L"" }  }; //.LocalName = ""; //TODO: make this 
-	if (paFiles == NULL) goto cleanup;
+	if (paFiles == NULL)
+	{
+		//TODO: pick the right error 
+		return 1; //TODO: definitely the wrong error where.
+	}
 	//Doc change: I'm using wcsdup here. I'm also using standard array indexing instead of pointer arithmetic.
 	// TODO: maybe cast as a const? Can't keep as wcsdup because that's weird and doesn't get freed automatically.
 	paFiles[0].RemoteName = _wcsdup(L"http://www.msftconnecttest.com/");
@@ -100,21 +100,23 @@ void DownloadFile()
 
 
 	//TODO: team recommendation: this giant sample should just be a set of function calls, one for each logical part of the sample.
-	// That wat the big sample is a short little thing with high level details only.
+	// That way the big sample is a short little thing with high level details only.
 	//TOOD: move this into a seperate function.
 	// The code for Part 5b comes before the code for part 4 (Start the job)
 	// Part 5b: set up a notifications for job changes
 	// https://docs.microsoft.com/en-us/windows/desktop/api/Bits/nf-bits-ibackgroundcopyjob-setnotifyinterface
 
+	auto pNotify = new CNotifyInterface(); // For part 5B; the new doesn't do an AddRef.
+	pNotify->AddRef();
 	hr = job->SetNotifyInterface(pNotify);
 	// BITS has taken a reference on the Notify object; remove our reference to it.
 	// Remove our reference regardless of whether or not the notify succeeded or not.
 	pNotify->Release();
 	pNotify = NULL;
-	if (FAILED(hr)) goto cleanup;
+	IFFAILRETURN(hr);
 
 	hr = job->SetNotifyFlags(BG_NOTIFY_JOB_TRANSFERRED | BG_NOTIFY_JOB_ERROR | BG_NOTIFY_JOB_MODIFICATION);
-	if (FAILED(hr)) goto cleanup;
+	IFFAILRETURN(hr);
 
 
 	// CALL FOR OTHER SNIPPET:
@@ -124,8 +126,8 @@ void DownloadFile()
 	
 
 	std::wcout << L"Set the transfer policy" << std::endl;
-	hr = SpecifyTransferPolicy(job);
-	if (FAILED(hr)) goto cleanup;
+	hr = SpecifyTransferPolicy(job.get());
+	IFFAILRETURN(hr);
 	std::wcout << L"Set the transfer policy" << std::endl;
 
 
@@ -138,7 +140,7 @@ void DownloadFile()
 
  	std::wcout << L"Resume the job to start it" << std::endl;
 	hr = job->Resume();
-	if (FAILED(hr)) goto cleanup;
+	IFFAILRETURN(hr);
 
 
 
@@ -159,7 +161,7 @@ void DownloadFile()
 	{
 		Sleep(100); // 100 milliseconds
 		hr = job->GetState(&State);
-		if (FAILED(hr)) goto cleanup;
+		IFFAILRETURN(hr);
 		std::wcout << L"POLLING LOOP: STATE=" << JobStates[State] << L"\n";
 
 		// Part 5d: Determining the progress of a job.
@@ -167,6 +169,7 @@ void DownloadFile()
 		// doc changes: removing all of the StringCchPrintf stuff in favor of plain std::wcout
 
 
+		BG_JOB_PROGRESS bitsProgress;
 		hr = job->GetProgress(&bitsProgress);
 		if (FAILED(hr))
 		{
@@ -197,7 +200,7 @@ void DownloadFile()
 	
 
 	// Part of the display file headers code snippet
-	DisplayFileHeaders(job);
+	DisplayFileHeaders(job.get());
 
 
 	// Part 6: Complete the job
@@ -208,26 +211,11 @@ void DownloadFile()
 	{
 		std::wcout << L"Complete the job" << std::endl;
 		hr = job->Complete();
-		if (FAILED(hr)) goto cleanup;
+		IFFAILRETURN(hr);
 	}
 	std::wcout << L"All done" << std::endl;
 
-	return;
-cleanup:
-	// If the job exists, then cancel it. If cancelling fails, do nothing
-	if (job != NULL)
-	{
-		job->Cancel();
-	}
-	// Free is guaranteed to handle NULL pointers.
-	free(paFiles);
-	paFiles = NULL;
-
-
-	// Part 1: Connecting to the BITS Service
-	// Call CoUninitialize()
-	CoUninitialize();
-	std::wcout << L"ERROR: HRESULT=" << std::hex << hr << std::endl;
+	return hr;
 }
 
 int main()

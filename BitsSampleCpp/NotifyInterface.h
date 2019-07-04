@@ -1,8 +1,8 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
 #pragma once
 
 
-// Doc status: the notify interface stuff doesn't work. In particular, I don't get transferred callbacks?
-// Doc status: the notify interface isn't updated to use the _com_ptr_t style.
 #define TWO_GB 2147483648    // 2GB
 class CNotifyInterface : public IBackgroundCopyCallback
 {

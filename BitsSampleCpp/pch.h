@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
 #pragma once
 
 #define WIN32_LEAN_AND_MEAN
@@ -5,10 +7,6 @@
 #include <bits.h>
 #include <iostream>
 #include <ostream>
-
-// For the _com_ptr_t smart COM pointer
-#include <comdef.h>
-#include <comip.h>
 
 #include "NotifyInterface.h"
 #include <wil\com.h>

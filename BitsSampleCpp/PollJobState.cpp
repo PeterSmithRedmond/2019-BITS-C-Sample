@@ -29,7 +29,6 @@ HRESULT BitsSampleMethods::PollJobState(IBackgroundCopyJob* job, BG_JOB_STATE* p
 
 		BG_JOB_PROGRESS bitsProgress;
 		RETURN_IF_FAILED(job->GetProgress(&bitsProgress));
-		//TODO: don't fail? Instead do something else? 
 
 		//Because the BytesTotal member can be 0 or BG_SIZE_UNKNOWN, you may not be able 
 		//to determine a percentage value to display, such as 57%. It is best to display a 

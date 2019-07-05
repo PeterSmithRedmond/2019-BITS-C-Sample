@@ -31,15 +31,17 @@ HRESULT DemonstrateBitsUsage()
 	std::wcout << L"Initialize COM" << std::endl;
 	// TODO: what are the allowed values for the coinitialize?
 	// Started as COINIT_APARTMENTTHREADED but COINIT_MULTITHREADED is the 'default'
-	//TODO: what's the WIL way to uninitialize?
-	RETURN_IF_FAILED(CoInitializeEx(NULL, COINIT_MULTITHREADED));
-
+	auto uninitialize = wil::CoInitializeEx(COINIT_MULTITHREADED);
+	
 	std::wcout << L"Create the BackgroundCopyManager" << std::endl;
 	// BITS runs in a seperate process, so you have to specify CLSCTX_LOCAL_SERVER
 	wil::com_ptr_nothrow<IBackgroundCopyManager> bcm 
 		= wil::CoCreateInstance<BackgroundCopyManager, IBackgroundCopyManager>(CLSCTX_LOCAL_SERVER);
+	if (!bcm)
+	{
+		return REGDB_E_CLASSNOTREG; // wil: will swallow the original HRESULT value.
+	}
 
-	//TODO: handle the errors ehere
 
 	// Enumerating jobs in the transfer queue
 	// https://docs.microsoft.com/en-us/windows/desktop/bits/enumerating-jobs-in-the-transfer-queue
@@ -48,7 +50,7 @@ HRESULT DemonstrateBitsUsage()
 	// Part 1: Connecting to the BITS Service
 	// The following code shows how to use one of the symbolic class identifiers.
 	// This will only work when the code is run on a system that includes BITS 10.2
-	// TODO: TEAM: no point in doing this other thing. Just do the one standard way. This other way isn't adding anything of value.
+	// doc change: TEAM: no point in doing this other thing. Just do the one standard way. This other way isn't adding anything of value.
 
 
 	// Part 2: Creating a job
@@ -66,7 +68,7 @@ HRESULT DemonstrateBitsUsage()
 	
 	// The code for Part 5b comes before the code for part 4 (Start the job)
 
-	// TODO: we need another snippet here:
+	// doc change: we need another snippet here:
 	// How to control whether a BITS job is allowed to download over an expensive connection.
 	// This function call snippet is not included in the docs
 	// https://docs.microsoft.com/en-us/windows/desktop/bits/how-to-block-a-bits-job-from-downloading-over-an-expensive-connection
@@ -75,11 +77,7 @@ HRESULT DemonstrateBitsUsage()
 	RETURN_IF_FAILED(BitsSampleMethods::SpecifyTransferPolicy(job.get()));
 
 	// Part 4: Start the job
-	// The link jumps straight to the ::Resume
-	// Doc change: change the link to go to a NEW page that will include this mini-sample
-	//TODO: turn this into a method call
- 	std::wcout << L"Resume the job to start it" << std::endl;
-	RETURN_IF_FAILED(job->Resume());
+
 
 
 	BG_JOB_STATE state;

@@ -21,18 +21,12 @@ HRESULT BitsSampleMethods::AddFilesToJob(IBackgroundCopyJob* job)
 	// The following example shows how to add multiple files to the job
 	const ULONG NFilesInSet = 1;
 
-	BG_FILE_INFO* paFiles = NULL;
-	paFiles = (BG_FILE_INFO*)malloc(sizeof(BG_FILE_INFO) * NFilesInSet);
-	// // // TODO: use this other way. and make the strings work. BG_FILE_INFO fileset[1] = { { L"", L"" }  }; //.LocalName = ""; //TODO: make this 
-	if (paFiles == NULL)
-	{
-		//TODO: pick the right error 
-		return 1; //TODO: definitely the wrong error where.
-	}
-	//Doc change: I'm using wcsdup here. I'm also using standard array indexing instead of pointer arithmetic.
-	// TODO: maybe cast as a const? Can't keep as wcsdup because that's weird and doesn't get freed automatically.
-	paFiles[0].RemoteName = _wcsdup(L"http://www.msftconnecttest.com/");
-	paFiles[0].LocalName = _wcsdup(L"c:\\TEMP\\bitssample-page.txt");
-	RETURN_IF_FAILED(job->AddFileSet(NFilesInSet, paFiles));
+	// The BG_FILE_INFO definition is that it takes in a WSTR; string literals
+	// are const pointers. Just cast from one to the other.
+	BG_FILE_INFO fileArray[1] = { 
+		{(LPWSTR)L"http://www.msftconnecttest.com/", (LPWSTR)L"c:\\TEMP\\bitssample-page.txt" } 
+	};
+
+	RETURN_IF_FAILED(job->AddFileSet(NFilesInSet, fileArray));
 	return S_OK;
 }

@@ -10,7 +10,6 @@ HRESULT BitsSampleMethods::SpecifyTransferPolicy(IBackgroundCopyJob* job)
 	wil::com_ptr_nothrow<IBackgroundCopyJob5> job5;
 	RETURN_IF_FAILED(job->QueryInterface<IBackgroundCopyJob5>(&job5));
 
-	//TODO: pick the most useful set of bits
 	BITS_JOB_PROPERTY_VALUE propval;
 	propval.Dword = BITS_COST_STATE_USAGE_BASED
 		| BITS_COST_STATE_OVERCAP_THROTTLED

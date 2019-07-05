@@ -55,7 +55,6 @@ HRESULT CNotifyInterface::JobTransferred(IBackgroundCopyJob* pJob)
 	return S_OK;
 }
 
-//doc: TODO: this needs to be updated with smart pointers.
 HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyError* pError)
 {
 	HRESULT errorCode = S_OK;
@@ -97,7 +96,6 @@ HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyErro
 		{
 			RETURN_IF_FAILED(pJob->SetPriority(BG_JOB_PRIORITY_FOREGROUND));
 			RETURN_IF_FAILED(pJob->Resume());
-			//TODO: why doesn't the code call IFFAILRETURN()?
 			isError = FALSE;
 		}
 	}

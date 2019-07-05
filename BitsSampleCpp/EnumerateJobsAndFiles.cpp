@@ -15,7 +15,6 @@ HRESULT BitsSampleMethods::EnumerateJobsAndFiles(IBackgroundCopyManager* mgr)
 	ULONG jobCount = 0;
 
 	RETURN_IF_FAILED(mgr->EnumJobs(0, &jobs)); // 0 means enumerate just for this user
-	 //TODO: make an enum for BG_JOB_ENUM_CURRENT_USER (file bug)
 
 	jobs->GetCount(&jobCount);
 	std::wcout << L"Enumerate: job count=" << jobCount << std::endl;

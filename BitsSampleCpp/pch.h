@@ -11,11 +11,8 @@
 #include "NotifyInterface.h"
 #include <wil\com.h>
 #include <wil\Resource.h>
-#define IFFAILRETURN(hr) if (FAILED (hr)) return hr;
+// https://github.com/microsoft/wil/wiki/Error-handling-helpers
+#include <wil\Result.h>
 
-// Functions that are uses here and there.
-HRESULT EnumerateJobsAndFiles(IBackgroundCopyManager* mgr);
-HRESULT SpecifyTransferPolicy(IBackgroundCopyJob* job);
-HRESULT DisplayFileHeaders(IBackgroundCopyJob* job);
-HRESULT DisplayErrors(IBackgroundCopyJob* job);
+
 

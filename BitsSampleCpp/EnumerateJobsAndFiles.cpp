@@ -2,20 +2,19 @@
 // Licensed under the MIT License.
 
 #include "pch.h"
-
+#include "BitsSampleMethods.h"
 // https://docs.microsoft.com/en-us/windows/desktop/bits/enumerating-jobs-in-the-transfer-queue
-HRESULT EnumerateFiles(IBackgroundCopyJob* job);
 
 
-HRESULT EnumerateJobsAndFiles(IBackgroundCopyManager* mgr)
+
+HRESULT BitsSampleMethods::EnumerateJobsAndFiles(IBackgroundCopyManager* mgr)
 {
 	wil::com_ptr_nothrow<IEnumBackgroundCopyJobs> jobs;
 	wil::com_ptr_t<IBackgroundCopyJob> job;
 
 	ULONG jobCount = 0;
 
-	HRESULT hr = mgr->EnumJobs(0, &jobs); // 0 means enumerate just for this user
-	IFFAILRETURN(hr);
+	RETURN_IF_FAILED(mgr->EnumJobs(0, &jobs)); // 0 means enumerate just for this user
 	 //TODO: make an enum for BG_JOB_ENUM_CURRENT_USER (file bug)
 
 	jobs->GetCount(&jobCount);
@@ -23,47 +22,41 @@ HRESULT EnumerateJobsAndFiles(IBackgroundCopyManager* mgr)
 
 	for (ULONG jobIndex = 0; jobIndex < jobCount; jobIndex++)
 	{
-		hr = jobs->Next(1, &job, NULL);
-		IFFAILRETURN(hr);
+		RETURN_IF_FAILED(jobs->Next(1, &job, NULL));
 
 		wil::unique_cotaskmem_string jobName;
-		hr = job->GetDisplayName(&jobName);
-		IFFAILRETURN(hr);
+		RETURN_IF_FAILED(job->GetDisplayName(&jobName));
 
-		std::wcout << L"ENUMERATE: Job " << jobIndex << " name=" << &jobName << std::endl;
-		EnumerateFiles(job.get());
+		std::wcout << L"ENUMERATE: Job " << jobIndex << " name=" << jobName.get() << std::endl;
+		BitsSampleMethods::EnumerateFiles(job.get());
 	}
 
-	return hr; // S_OK
+	return S_OK;
 }
 
-
-HRESULT EnumerateFiles(IBackgroundCopyJob* job)
+HRESULT BitsSampleMethods::EnumerateFiles(IBackgroundCopyJob* job)
 {
 	// doc: Enumerating files in a job
 	// https://docs.microsoft.com/en-us/windows/desktop/bits/enumerating-files-in-a-job
 
 	wil::com_ptr_nothrow<IEnumBackgroundCopyFiles> files;
-	HRESULT hr = job->EnumFiles(&files);
-	IFFAILRETURN(hr);
+	RETURN_IF_FAILED(job->EnumFiles(&files));
 
 	ULONG fileCount = 0;
-	hr = files->GetCount(&fileCount);
-	IFFAILRETURN(hr);
+	RETURN_IF_FAILED(files->GetCount(&fileCount));
 
 	for (ULONG fileIndex = 0; fileIndex < fileCount; fileIndex++)
 	{
 		wil::com_ptr_nothrow<IBackgroundCopyFile> file;
-		hr = files->Next(1, &file, NULL);
-		IFFAILRETURN(hr);
+		RETURN_IF_FAILED(files->Next(1, &file, NULL));
 
 		wil::unique_cotaskmem_string remoteName;
-		hr = file->GetRemoteName(&remoteName); //handle hr.
+		RETURN_IF_FAILED(file->GetRemoteName(&remoteName));
 
 		wil::unique_cotaskmem_string localName;
-		hr = file->GetLocalName(&localName);
-		std::wcout << L"    ENUMERATE: file " << fileIndex << " remote=" << &remoteName << " local=" << &localName << std::endl;
+		RETURN_IF_FAILED(file->GetLocalName(&localName));
+		std::wcout << L"    ENUMERATE: file " << fileIndex << " remote=" << remoteName.get() << " local=" << localName.get() << std::endl;
 	}
 
-	return hr;
+	return S_OK;
 }

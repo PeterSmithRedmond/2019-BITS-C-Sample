@@ -44,15 +44,12 @@ ULONG CNotifyInterface::Release()
 
 HRESULT CNotifyInterface::JobTransferred(IBackgroundCopyJob* pJob)
 {
-	HRESULT hr;
-
 	//Add logic that will not block the callback thread. If you need to perform
 	//extensive logic at this time, consider creating a separate thread to perform
 	//the work.
 	std::wcout << L"NotifyInterface::JobTransferred" << std::endl;
 
-	hr = pJob->Complete();
-	IFFAILRETURN(hr);
+	RETURN_IF_FAILED(pJob->Complete());
 
 	//If you do not return S_OK, BITS continues to call this callback.
 	return S_OK;
@@ -61,7 +58,6 @@ HRESULT CNotifyInterface::JobTransferred(IBackgroundCopyJob* pJob)
 //doc: TODO: this needs to be updated with smart pointers.
 HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyError* pError)
 {
-	HRESULT hr;
 	HRESULT errorCode = S_OK;
 	BOOL isError = TRUE;
 
@@ -73,7 +69,7 @@ HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyErro
 	//upload file failed.
 
 	BG_ERROR_CONTEXT context;
-	hr = pError->GetError(&context, &errorCode);
+	RETURN_IF_FAILED(pError->GetError(&context, &errorCode));
 
 	//If the proxy or server does not support the Content-Range header or if
 	//antivirus software removes the range requests, BITS returns BG_E_INSUFFICIENT_RANGE_SUPPORT.
@@ -82,12 +78,10 @@ HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyErro
 	if (errorCode == BG_E_INSUFFICIENT_RANGE_SUPPORT)
 	{
 		wil::com_ptr_nothrow<IBackgroundCopyFile> file;
-		hr = pError->GetFile(&file);
-		IFFAILRETURN(hr);
+		RETURN_IF_FAILED(pError->GetFile(&file));
 
 		BG_FILE_PROGRESS progress;
-		hr = file->GetProgress(&progress);
-		IFFAILRETURN(hr);
+		RETURN_IF_FAILED(file->GetProgress(&progress));
 		if (progress.BytesTotal == BG_SIZE_UNKNOWN)
 		{
 			//The content is dynamic, do not change priority. Handle as an error.
@@ -101,8 +95,8 @@ HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyErro
 		}
 		else
 		{
-			hr = pJob->SetPriority(BG_JOB_PRIORITY_FOREGROUND);
-			hr = pJob->Resume();
+			RETURN_IF_FAILED(pJob->SetPriority(BG_JOB_PRIORITY_FOREGROUND));
+			RETURN_IF_FAILED(pJob->Resume());
 			//TODO: why doesn't the code call IFFAILRETURN()?
 			isError = FALSE;
 		}
@@ -113,12 +107,12 @@ HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyErro
 		wil::unique_cotaskmem_string jobName;
 		wil::unique_cotaskmem_string errorDescription;
 
-		hr = pJob->GetDisplayName(&jobName);
-		hr = pError->GetErrorDescription(LANGIDFROMLCID(GetThreadLocale()), &errorDescription);
+		RETURN_IF_FAILED(pJob->GetDisplayName(&jobName));
+		RETURN_IF_FAILED(pError->GetErrorDescription(LANGIDFROMLCID(GetThreadLocale()), &errorDescription));
 
 		if (&jobName && &errorDescription)
 		{
-			std::wcout << L"ERROR: job=" << &jobName << L" description=" << &errorDescription << std::endl;
+			std::wcout << L"ERROR: job=" << jobName.get() << L" description=" << errorDescription.get() << std::endl;
 		}
 	}
 
@@ -129,7 +123,6 @@ HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyErro
 HRESULT CNotifyInterface::JobModification(IBackgroundCopyJob* pJob, DWORD dwReserved)
 {
 	//TODO: doc change: this callback will be called concurrently. Should we demonstrate re-entrant-proof techniques?
-	HRESULT hr;
 	BG_JOB_PROGRESS Progress;
 	BG_JOB_STATE State;
 
@@ -138,16 +131,13 @@ HRESULT CNotifyInterface::JobModification(IBackgroundCopyJob* pJob, DWORD dwRese
 						   L"Transferred", L"Acknowledged", L"Canceled"
 	};
 	wil::unique_cotaskmem_string jobName;
-	hr = pJob->GetDisplayName(&jobName);
-	IFFAILRETURN(hr);
+	RETURN_IF_FAILED(pJob->GetDisplayName(&jobName));
 
-	hr = pJob->GetProgress(&Progress);
-	IFFAILRETURN(hr);
+	RETURN_IF_FAILED(pJob->GetProgress(&Progress));
 
-	hr = pJob->GetState(&State);
-	IFFAILRETURN(hr);
+	RETURN_IF_FAILED(pJob->GetState(&State));
 
-	std::wcout << L"NotifyInterface::JobModification New state=" << JobStates[State] << L" Job=" << &jobName << std::endl;
+	std::wcout << L"NotifyInterface::JobModification New state=" << JobStates[State] << L" Job=" << jobName.get() << std::endl;
 	//Do something with the progress and state information.
 	//BITS generates a high volume of modification
 	//callbacks. Use this callback with discretion. Consider creating a timer and 
@@ -155,5 +145,5 @@ HRESULT CNotifyInterface::JobModification(IBackgroundCopyJob* pJob, DWORD dwRese
 
 	//TODO: the output can be comingled. We should do a lock here. 
 	// Team recommendation for lock is --- do a Bing search :-)
-	return hr;
+	return S_OK;
 }

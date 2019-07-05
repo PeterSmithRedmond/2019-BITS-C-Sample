@@ -21,6 +21,9 @@
     <ClInclude Include="NotifyInterface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BitsSampleMethods.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -42,6 +45,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="HandlingErrors.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AddFilesToJob.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CompleteJob.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PollJobState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SetNotifyInterface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -151,11 +151,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BitsSampleMethods.h" />
     <ClInclude Include="NotifyInterface.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AddFilesToJob.cpp" />
     <ClCompile Include="BitsSampleCpp.cpp" />
+    <ClCompile Include="CompleteJob.cpp" />
     <ClCompile Include="DisplayFileHeaders.cpp" />
     <ClCompile Include="EnumerateJobsAndFiles.cpp" />
     <ClCompile Include="HandlingErrors.cpp" />
@@ -166,6 +169,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="PollJobState.cpp" />
+    <ClCompile Include="SetNotifyInterface.cpp" />
     <ClCompile Include="SpecifyTheTransferPolicy.cpp" />
   </ItemGroup>
   <ItemGroup>

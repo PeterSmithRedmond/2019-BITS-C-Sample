@@ -7,10 +7,8 @@
 // For each file in the job, obtain and display the HTTP header received server.
 HRESULT DisplayErrors(IBackgroundCopyJob* job)
 {
-	HRESULT hr = 0;
 	wil::com_ptr_nothrow<IBackgroundCopyError> error;
-	hr = job->GetError(&error);
-	IFFAILRETURN(hr);
+	RETURN_IF_FAILED(job->GetError(&error));
 
 	//Retrieve the HRESULT associated with the error. The context tells you
 	//where the error occurred, for example, in the transport, queue manager, the 
@@ -21,25 +19,21 @@ HRESULT DisplayErrors(IBackgroundCopyJob* job)
 
 	//Retrieve a description associated with the HRESULT value.
 	wil::unique_cotaskmem_string description;
-	hr = error->GetErrorDescription(LANGIDFROMLCID(GetThreadLocale()), &description);
-	IFFAILRETURN(hr);
+	RETURN_IF_FAILED(error->GetErrorDescription(LANGIDFROMLCID(GetThreadLocale()), &description));
 
 	if (BG_ERROR_CONTEXT_REMOTE_FILE == Context)
 	{
 		wil::com_ptr_nothrow<IBackgroundCopyFile> file;
-		hr = error->GetFile(&file);
-		IFFAILRETURN(hr);
+		RETURN_IF_FAILED(error->GetFile(&file));
 
 		wil::unique_cotaskmem_string remoteName;
-		hr = file->GetRemoteName(&remoteName);
-		IFFAILRETURN(hr);
+		RETURN_IF_FAILED(file->GetRemoteName(&remoteName));
 
 		//Do something with the information.
-		std::wcout << L"Error with remote file. Error=" << hrError << std::hex << L" description=" << &description << L" remote name=" << &remoteName << std::endl;
+		std::wcout << L"Error with remote file. Error=" << hrError << std::hex << L" description=" << description.get() << L" remote name=" << remoteName.get() << std::endl;
 	}
 	else
 	{
-		std::wcout << L"Error in job. Error=" << hrError << std::hex << L" description=" << &description << std::endl;
+		std::wcout << L"Error in job. Error=" << hrError << std::hex << L" description=" << description.get() << std::endl;
 	}
-	return hr;
 }

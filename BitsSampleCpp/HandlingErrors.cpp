@@ -2,9 +2,11 @@
 // Licensed under the MIT License.
 #include "pch.h"
 
-// https://docs.microsoft.com/en-us/windows/desktop/bits/how-to-get-the-last-set-of-http-headers-received-for-each-file-in-a-bits-download-job
 
-// For each file in the job, obtain and display the HTTP header received server.
+// doc code:
+// Sample for https://docs.microsoft.com/en-us/windows/win32/bits/handling-errors// This entirely replaces the code snippet.
+
+
 HRESULT DisplayErrors(IBackgroundCopyJob* job)
 {
 	wil::com_ptr_nothrow<IBackgroundCopyError> error;
@@ -36,4 +38,5 @@ HRESULT DisplayErrors(IBackgroundCopyJob* job)
 	{
 		std::wcout << L"Error in job. Error=" << hrError << std::hex << L" description=" << description.get() << std::endl;
 	}
+	return S_OK;
 }

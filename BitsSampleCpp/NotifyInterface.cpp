@@ -5,8 +5,9 @@
 #include "NotifyInterface.h"
 
 
-// https://docs.microsoft.com/en-us/windows/desktop/bits/registering-a-com-callback
-// https://docs.microsoft.com/en-us/windows/desktop/api/bits/nn-bits-ibackgroundcopycallback
+// doc code:
+// Sample for https://docs.microsoft.com/en-us/windows/win32/bits/registering-a-com-callback// See SetNotifyInterface.cpp for details.
+
 
 HRESULT CNotifyInterface::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {

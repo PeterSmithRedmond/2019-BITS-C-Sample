@@ -3,8 +3,14 @@
 
 // Note: no plans to update the following:
 // Registering to execute a program: https://docs.microsoft.com/en-us/windows/desktop/bits/registering-to-execute-a-program
+// The CLSID based snippet from https://docs.microsoft.com/en-us/windows/win32/bits/registering-a-com-callback
+// The upload-reply snippet from https://docs.microsoft.com/en-us/windows/win32/bits/determining-the-progress-of-a-job
+
 // Using WIL wrappers https://github.com/microsoft/wil/wiki/WinRT-and-COM-wrappers
 
+// Still to be done:
+// https://docs.microsoft.com/en-us/windows/win32/bits/setting-and-retrieving-the-properties-of-a-job
+// https://docs.microsoft.com/en-us/windows/win32/bits/retrieving-the-reply-from-an-upload-reply-job
 
 #include "pch.h"
 #include "BitsSampleMethods.h"
@@ -69,6 +75,8 @@ HRESULT DemonstrateBitsUsage()
 
 	std::wcout << L"Set the transfer policy" << std::endl;
 	RETURN_IF_FAILED(BitsSampleMethods::SpecifyTransferPolicy(job.get()));
+
+	RETURN_IF_FAILED(BitsSampleMethods::SetJobPriority(job.get()));
 
 	// Part 4: Start the job
 	RETURN_IF_FAILED(BitsSampleMethods::StartJob(job.get()));

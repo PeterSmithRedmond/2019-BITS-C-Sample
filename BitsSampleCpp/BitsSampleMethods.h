@@ -8,7 +8,10 @@ public:
 	static HRESULT StartJob(IBackgroundCopyJob* job);
 	static HRESULT CompleteJob(IBackgroundCopyJob* job);
 	static HRESULT PollJobState(IBackgroundCopyJob* job, BG_JOB_STATE* pState);
+	static HRESULT SetJobPriority(IBackgroundCopyJob* job);
 	static HRESULT SetNotifyInterface(IBackgroundCopyJob* job);
+	static HRESULT RetrieveJobProperties(IBackgroundCopyJob* job);
+	static HRESULT DetermineJobProgress(IBackgroundCopyJob* job);
 
 	static HRESULT EnumerateFiles(IBackgroundCopyJob* job);
 	static HRESULT EnumerateJobsAndFiles(IBackgroundCopyManager* mgr);

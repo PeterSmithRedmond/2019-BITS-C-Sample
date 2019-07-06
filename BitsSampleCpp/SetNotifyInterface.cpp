@@ -5,6 +5,11 @@
 #include "BitsSampleMethods.h"
 
 
+// doc code:
+// Sample for https://docs.microsoft.com/en-us/windows/win32/bits/registering-a-com-callback// https://docs.microsoft.com/en-us/windows/desktop/api/bits/nn-bits-ibackgroundcopycallback
+// Also needed is the NotifyInterface.h and NotifyInterface.cpp files
+// The CLSID based snippet in the docmentation will be unchanged.
+
 HRESULT BitsSampleMethods::SetNotifyInterface(IBackgroundCopyJob* job)
 {
 	// Part 5b: set up a notifications for job changes

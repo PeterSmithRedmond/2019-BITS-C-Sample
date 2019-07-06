@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 #pragma once
 
+// doc code:
+// Sample for https://docs.microsoft.com/en-us/windows/win32/bits/registering-a-com-callback// See SetNotifyInterface.cpp for details
 
 #define TWO_GB 2147483648    // 2GB
 class CNotifyInterface : public IBackgroundCopyCallback

@@ -6,12 +6,19 @@
 #define TWO_GB 2147483648    // 2GB
 class CNotifyInterface : public IBackgroundCopyCallback
 {
-	LONG m_lRefCount;
+	LONG refCount;
+	wil::unique_mutex mutex;
 
 public:
 	//Constructor, Destructor
-	CNotifyInterface() { m_lRefCount = 1; };
-	~CNotifyInterface() {};
+	CNotifyInterface() 
+	{
+		refCount = 0;
+		mutex.create();
+	};
+	~CNotifyInterface() 
+	{
+	};
 
 	//IUnknown
 	HRESULT __stdcall QueryInterface(REFIID riid, LPVOID *ppvObj);

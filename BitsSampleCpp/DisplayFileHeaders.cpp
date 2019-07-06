@@ -3,7 +3,11 @@
 #include "pch.h"
 #include "BitsSampleMethods.h"
 
-// https://docs.microsoft.com/en-us/windows/desktop/bits/how-to-get-the-last-set-of-http-headers-received-for-each-file-in-a-bits-download-job
+// doc code:
+// Sample for https://docs.microsoft.com/en-us/windows/desktop/bits/how-to-get-the-last-set-of-http-headers-received-for-each-file-in-a-bits-download-job
+// this code is the step 7: Display the downloaded file headers
+// Next step: we don't need any of the steps except the one step. The full sample should be removed entirely.
+// Specifically, the sample code has a comment tht it "parses the provided string..." -- but it doesn't.
 
 
 // For each file in the job, obtain and display the HTTP header received server.

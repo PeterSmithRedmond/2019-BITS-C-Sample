@@ -8,7 +8,6 @@
 // https://docs.microsoft.com/en-us/windows/desktop/bits/registering-a-com-callback
 // https://docs.microsoft.com/en-us/windows/desktop/api/bits/nn-bits-ibackgroundcopycallback
 
-//TODO: WIL library might well have something for the boilerplate already.
 HRESULT CNotifyInterface::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {
 	if (riid == __uuidof(IUnknown) || riid == __uuidof(IBackgroundCopyCallback))
@@ -27,23 +26,29 @@ HRESULT CNotifyInterface::QueryInterface(REFIID riid, LPVOID* ppvObj)
 
 ULONG CNotifyInterface::AddRef()
 {
-	return InterlockedIncrement(&m_lRefCount);
+	return InterlockedIncrement(&refCount);
 }
 
 ULONG CNotifyInterface::Release()
 {
-	ULONG  ulCount = InterlockedDecrement(&m_lRefCount);
+	ULONG  updatedRefCount = InterlockedDecrement(&refCount);
 
-	if (0 == ulCount)
+	if (updatedRefCount == 0)
 	{
 		delete this;
 	}
 
-	return ulCount;
+	return updatedRefCount;
 }
 
 HRESULT CNotifyInterface::JobTransferred(IBackgroundCopyJob* pJob)
 {
+	// BITS won't try to serialize the callbacks. The user of the code would probably prefer
+	// that the output not be all interlaced together. This mutex means that when this method
+	// is called while another version is still active that the second callback will wait until
+	// the first callback has finished.
+	auto releaseOnExit = mutex.acquire();
+
 	//Add logic that will not block the callback thread. If you need to perform
 	//extensive logic at this time, consider creating a separate thread to perform
 	//the work.
@@ -57,6 +62,12 @@ HRESULT CNotifyInterface::JobTransferred(IBackgroundCopyJob* pJob)
 
 HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyError* pError)
 {
+	// BITS won't try to serialize the callbacks. The user of the code would probably prefer
+	// that the output not be all interlaced together. This mutex means that when this method
+	// is called while another version is still active that the second callback will wait until
+	// the first callback has finished.
+	auto releaseOnExit = mutex.acquire();
+
 	HRESULT errorCode = S_OK;
 	BOOL isError = TRUE;
 
@@ -120,7 +131,12 @@ HRESULT CNotifyInterface::JobError(IBackgroundCopyJob* pJob, IBackgroundCopyErro
 
 HRESULT CNotifyInterface::JobModification(IBackgroundCopyJob* pJob, DWORD dwReserved)
 {
-	//TODO: doc change: this callback will be called concurrently. Should we demonstrate re-entrant-proof techniques?
+	// BITS won't try to serialize the callbacks. The user of the code would probably prefer
+	// that the output not be all interlaced together. This mutex means that when this method
+	// is called while another version is still active that the second callback will wait until
+	// the first callback has finished.
+	auto releaseOnExit = mutex.acquire();
+
 	BG_JOB_PROGRESS Progress;
 	BG_JOB_STATE State;
 
@@ -141,7 +157,5 @@ HRESULT CNotifyInterface::JobModification(IBackgroundCopyJob* pJob, DWORD dwRese
 	//callbacks. Use this callback with discretion. Consider creating a timer and 
 	//polling for state and progress information.
 
-	//TODO: the output can be comingled. We should do a lock here. 
-	// Team recommendation for lock is --- do a Bing search :-)
 	return S_OK;
 }

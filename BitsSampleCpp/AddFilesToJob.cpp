@@ -5,6 +5,11 @@
 #include "BitsSampleMethods.h"
 
 
+// doc code:
+// Sample for https://docs.microsoft.com/en-us/windows/win32/bits/adding-files-to-a-job
+// These two methods are the two snippets in the docs.
+
+
 HRESULT BitsSampleMethods::AddFileToJob(IBackgroundCopyJob* job)
 {
 	// https://docs.microsoft.com/en-us/windows/desktop/bits/adding-files-to-a-job
@@ -16,17 +21,18 @@ HRESULT BitsSampleMethods::AddFileToJob(IBackgroundCopyJob* job)
 	return S_OK;
 }
 
+
 HRESULT BitsSampleMethods::AddFilesToJob(IBackgroundCopyJob* job)
 {
 	// The following example shows how to add multiple files to the job
-	const ULONG NFilesInSet = 1;
 
 	// The BG_FILE_INFO definition is that it takes in a WSTR; string literals
-	// are const pointers. Just cast from one to the other.
-	BG_FILE_INFO fileArray[1] = { 
-		{(LPWSTR)L"http://www.msftconnecttest.com/", (LPWSTR)L"c:\\TEMP\\bitssample-page.txt" } 
+	// are const pointers; they must be cast into the correct type.
+	BG_FILE_INFO fileArray[1] = {
+		{(LPWSTR)L"http://www.msftconnecttest.com/", (LPWSTR)L"c:\\TEMP\\bitssample-page.txt" }
 	};
+	ULONG nFilesInSet = sizeof(fileArray) / sizeof(fileArray[0]);
+	RETURN_IF_FAILED(job->AddFileSet(nFilesInSet, fileArray));
 
-	RETURN_IF_FAILED(job->AddFileSet(NFilesInSet, fileArray));
 	return S_OK;
 }

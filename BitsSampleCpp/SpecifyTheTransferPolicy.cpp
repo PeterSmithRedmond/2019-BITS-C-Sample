@@ -4,6 +4,11 @@
 #include "pch.h"
 #include "BitsSampleMethods.h"
 
+// doc code:
+// Sample for https://docs.microsoft.com/en-us/windows/win32/bits/how-to-block-a-bits-job-from-downloading-over-an-expensive-connection
+// This code is the "Step 5: Specify the transfer policy setting for the job"
+// Next step: we don't need any of the steps except the one step. The full sample should be removed entirely.
+
 HRESULT BitsSampleMethods::SpecifyTransferPolicy(IBackgroundCopyJob* job)
 {
 	// The IBackgroundCopyJob5 interface was added in BITS 5 as part of Windows 8

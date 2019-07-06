@@ -8,11 +8,12 @@
 #include <iostream>
 #include <ostream>
 
-#include "NotifyInterface.h"
 #include <wil\com.h>
 #include <wil\Resource.h>
 // https://github.com/microsoft/wil/wiki/Error-handling-helpers
 #include <wil\Result.h>
 
+
+#include "NotifyInterface.h"
 
 
